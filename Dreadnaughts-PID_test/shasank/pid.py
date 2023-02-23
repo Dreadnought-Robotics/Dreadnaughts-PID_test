@@ -45,7 +45,7 @@ class pid:
       self.dolphins=rospy.Subscriber("/rosetta/imu/data",buoy, self.talker)
       self.gypseas=rospy.Subscriber("/calypso_pid/topple_checker",gypseas, self.getgyp)
       self.roll , self.pitch , self.yaw = self.convert()
-      print("pitch")
+      print("pitchasdfasdf")
       print(self.pitch)
       self.PID_pitch = self.getPID(self.kd_pitch, self.ki_pitch, self.kp_pitch, self.pitch, 0, self.pid_i_pitch, self.previous_error_pitch)
       # self.PID_roll = self.getPID(self.kd_roll, self.ki_roll, self.kp_roll, self.roll, 0, self.pid_i_roll, self.previous_error_roll)
