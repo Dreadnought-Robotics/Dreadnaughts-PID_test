@@ -141,14 +141,5 @@
       </link>
     </plugin>
   </gazebo>
-  <gazebo>
-     <!-- <plugin name="BuoyancyPlugin" filename="libBuoyancyPlugin.so">
-      <fluid_density>1000</fluid_density>
-      <link name="base_link">
-        <volume>0.03</volume>
-        <center_of_volume>0 0 0</center_of_volume>
-      </link>
-    </plugin>
-  </gazebo> -->
 
 </robot>
