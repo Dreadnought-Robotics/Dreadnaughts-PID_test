@@ -66,23 +66,23 @@ class pid:
 
   def getPID(self, kd, ki, kp, actual, desired, pid_i, previous_error):
   
-    error = actual - desired
-    print("error")
-    print(error)
-    pid_p = kp*error
-    
-    if(-7 < error <7):
-      pid_i = pid_i + (ki*error)
-    pid_d = kd*(error - previous_error)
+      error = desired - actual
+      pid_p = kp*error
+      pid_i = pid_i + error
+      pid_d = kd*(error - previous_error)
+      if pid_i>max(30-pid_p-pid_d, 0):
+          pid_i = max(30-pid_p-pid_d,0)
+      elif pid_i<min(-30-pid_i-pid_d, 0):
+          pid_i = min(-30-pid_p-pid_d,0)
+      pid_i_final = ki*pid_i
+      PID = pid_p + pid_i_final + pid_d
 
-    PID = pid_p + pid_i + pid_d
-
-    if(PID > 300):
-      PID=300
-    if(PID < -300):
-      PID=-300
-    previous_error = error
-    return PID
+      if(PID > 30):
+          PID=30
+      if(PID < -30):
+          PID=-30
+      previous_error = error
+      return PID
   
   def talker(self,buoy):
 
