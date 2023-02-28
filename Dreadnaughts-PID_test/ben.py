@@ -57,10 +57,8 @@ class pid:
       self.s=dolphins()
       self.s.d1 = int(self.throttle + self.PID_surge)
       self.s.d2 = int(self.throttle + self.PID_surge)
-      self.s.d3 = int(self.throttle + self.PID_surge)
-      self.s.d4 = int(self.throttle + self.PID_surge)
       
-      self.pwm_surge_speed.publish(self.swhatsa)
+      self.pwm_surge_speed.publish(self.s)
       self.pwmspeed.publish(self.g)
       
       self.rate.sleep()
