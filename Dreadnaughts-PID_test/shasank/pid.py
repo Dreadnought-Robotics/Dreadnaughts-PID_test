@@ -14,12 +14,12 @@ class pid:
 
     rospy.init_node('calypso_pid', anonymous=False)
 
-    self.kp_pitch = 30
-    self.kd_pitch =   0
-    self.ki_pitch = 0
-    self.kp_roll = 30
+    self.kp_pitch = 50
+    self.kd_pitch = 0
+    self.ki_pitch = 65
+    self.kp_roll = 50
     self.kd_roll = 0
-    self.ki_roll = 0
+    self.ki_roll = 65
 
     self.pid_i_pitch = 0
     self.pid_i_roll = 0
@@ -45,19 +45,26 @@ class pid:
       self.dolphins=rospy.Subscriber("/rosetta/imu/data",buoy, self.talker)
       self.gypseas=rospy.Subscriber("/calypso_pid/topple_checker",gypseas, self.getgyp)
       self.roll , self.pitch , self.yaw = self.convert()
-      print("pitchasdfasdf")
+      print("roll")
+      print(self.roll)
+
+      print("pitch")
       print(self.pitch)
       self.PID_pitch = self.getPID(self.kd_pitch, self.ki_pitch, self.kp_pitch, self.pitch, 0, self.pid_i_pitch, self.previous_error_pitch)
-      # self.PID_roll = self.getPID(self.kd_roll, self.ki_roll, self.kp_roll, self.roll, 0, self.pid_i_roll, self.previous_error_roll)
+      self.PID_roll = self.getPID(self.kd_roll, self.ki_roll, self.kp_roll, self.roll, 0, self.pid_i_roll, self.previous_error_roll)
       
       self.g=gypseas()
-      self.g.t1 = int(self.throttle1 + self.PID_pitch)# - self.PID_roll)
-      self.g.t2 = int(self.throttle2 + self.PID_pitch)# + self.PID_roll)
-      self.g.t3 = int(self.throttle3 - self.PID_pitch)# + self.PID_roll)
-      self.g.t4 = int(self.throttle4 - self.PID_pitch)# - self.PID_roll)
+      self.g.t1 = int(self.throttle1 + self.PID_roll - self.PID_pitch)
+      self.g.t2 = int(self.throttle2 - self.PID_roll - self.PID_pitch)
+      self.g.t3 = int(self.throttle3 - self.PID_roll + self.PID_pitch)
+      self.g.t4 = int(self.throttle4 + self.PID_roll + self.PID_pitch)
       
+      print("PID-roll")
+      print(self.PID_roll)
+
       print("PID-pitch")
       print(self.PID_pitch)
+
       
       self.pwmspeed.publish(self.g)
       
@@ -77,10 +84,10 @@ class pid:
       pid_i_final = ki*pid_i
       PID = pid_p + pid_i_final + pid_d
 
-      if(PID > 30):
-          PID=30
-      if(PID < -30):
-          PID=-30
+      if(PID > 90):
+          PID=90
+      if(PID < -90):
+          PID=-90
       previous_error = error
       return PID
   

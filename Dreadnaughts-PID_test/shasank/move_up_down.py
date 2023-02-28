@@ -41,7 +41,7 @@ class hover:
             print("altitude")
             print(100*self.altitude)
 
-            self.throttle_to_map = self.getPID(self.kp, self.ki, self.kd,   self.altitude, self.height_to_move, self.integrator_throttle, self.previous_throttle)
+            self.throttle_to_map = self.getPID(self.kp, self.ki, self.kd, 100*self.altitude, self.height_to_move, self.integrator_throttle, self.previous_throttle)
             self.throttle = self.m(self.throttle_to_map)
             
             self.g = gypseas()
