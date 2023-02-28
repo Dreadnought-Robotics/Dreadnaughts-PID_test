@@ -13,7 +13,7 @@ class pid:
   def _init_(self):
 
     rospy.init_node('calypso_pid', anonymous=False)
-    self.kp_yaw = 2
+    self.kp_yaw = 1
     self.kd_yaw = 0
     self.ki_yaw = 0
     
@@ -44,7 +44,7 @@ class pid:
 
     while not rospy.is_shutdown():
 
-      self.imu_data=rospy.Subscriber("/rosetta/imu/data",buoy, self.talker)
+      self.dolphins=rospy.Subscriber("/rosetta/imu/data",buoy, self.talker)
       
       self.yaw = self.convert()
       self.surge = self.convert_linear()
@@ -69,17 +69,15 @@ class pid:
   
     error = actual - desired
     pid_p = kp*error
-    
-    if(-7 < error < 7):
-      pid_i = pid_i + (ki*error)
+    pid_i = pid_i + (ki*error)
     pid_d = kd*(error - previous_error)
 
     PID = pid_p + pid_i + pid_d
 
-    if(PID > 300):
-      PID=300
-    if(PID < -300):
-        PID=-300
+    if(PID > 30):
+      PID=30
+    if(PID < -30):
+        PID=-30
     previous_error = error
     return PID
   
@@ -110,7 +108,6 @@ class pid:
 
 
 if __name__=='__main__':
-
   try:
       x = pid()
       x.start()
