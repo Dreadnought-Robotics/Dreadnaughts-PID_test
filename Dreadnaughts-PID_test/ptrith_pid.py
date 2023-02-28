@@ -4,39 +4,37 @@ from std_msgs.msg import Float64
 from std_msgs.msg import Int64
 from calypso_msgs.msg import buoy
 from calypso_msgs.msg import gypseas
+from calypso_msgs.msg import dolphins
 import pickle
 import math
 
-
 class pid:
 
-  def __init__(self):
+  def _init_(self):
 
     rospy.init_node('calypso_pid', anonymous=False)
-
-    self.kp_pitch = 2
-    self.kd_pitch = 0
-    self.ki_pitch = 0
-    self.kp_roll = 2
-    self.kd_roll = 0
-    self.ki_roll = 0
     self.kp_yaw = 2
     self.kd_yaw = 0
     self.ki_yaw = 0
-
-    self.pid_i_pitch = 0
-    self.pid_i_roll = 0
+    
+    # To control Yaw	
     self.pid_i_yaw = 0
-    self.previous_error_pitch = 0
-    self.previous_error_roll = 0
     self.previous_error_yaw = 0
 
+    # To move forward/backward
+    self.ki_surge  = 0
+    self.kd_surge = 0
+    self.kp_surge = 2
+
+    self.pid_i_surge = 0
+    self.previous_error_surge = 0
+    
     self.throttle = 1600
     self.rate = rospy.Rate(10)
-    self.pwmspeed = rospy.Publisher('/rosetta/gypseas', gypseas, queue_size=1000)
+    self.pwm_surge_speed = rospy.Publisher('/rosetta/dolphins', dolphins, queue_size = 1000)
     
     self.rate = rospy.Rate(10)
-	
+
     self.w=0
     self.x=0
     self.y=0
@@ -46,21 +44,23 @@ class pid:
 
     while not rospy.is_shutdown():
 
-      self.dolphins=rospy.Subscriber("/rosetta/imu/data",buoy, self.talker)
+      self.imu_data=rospy.Subscriber("/rosetta/imu/data",buoy, self.talker)
       
-      self.roll , self.pitch , self.yaw = self.convert()
-      
-      self.PID_pitch = self.getPID(self.kd_pitch, self.ki_pitch, self.kp_pitch, self.pitch, 0, self.pid_i_pitch, self.previous_error_pitch)
-      self.PID_roll = self.getPID(self.kd_roll, self.ki_roll, self.kp_roll, self.roll, 0, self.pid_i_roll, self.previous_error_roll)
+      self.yaw = self.convert()
+      self.surge = self.convert_linear()
+
       self.PID_yaw = self.getPID(self.kd_yaw, self.ki_yaw, self.kp_yaw, self.yaw, 0, self.pid_i_yaw, self.previous_error_yaw)
+
+      #Move the AUV forward
+      self.PID_surge = self.getPID_linear(self.kd_surge, self.ki_surge, self.kp_surge, 5, 0, self.pid_i_surge, self.previous_error_surge)
+
+      self.s=dolphins()
+      self.s.d1 = int(self.throttle + self.PID_surge)
+      self.s.d2 = int(self.throttle + self.PID_surge)
+      self.s.d3 = int(self.throttle + self.PID_surge)
+      self.s.d4 = int(self.throttle + self.PID_surge)
       
-      
-      self.g = gypseas()
-      self.g.t1 = int(self.throttle - self.PID_pitch - self.PID_roll)
-      self.g.t2 = int(self.throttle - self.PID_pitch + self.PID_roll)
-      self.g.t3 = int(self.throttle + self.PID_pitch + self.PID_roll)
-      self.g.t4 = int(self.throttle + self.PID_pitch - self.PID_roll)
-      
+      self.pwm_surge_speed.publish(self.swhatsa)
       self.pwmspeed.publish(self.g)
       
       self.rate.sleep()
@@ -70,44 +70,47 @@ class pid:
     error = actual - desired
     pid_p = kp*error
     
-    if(-7 < error <7):
+    if(-7 < error < 7):
       pid_i = pid_i + (ki*error)
-      pid_d = kd*(error - previous_error)
+    pid_d = kd*(error - previous_error)
 
     PID = pid_p + pid_i + pid_d
 
     if(PID > 300):
       PID=300
     if(PID < -300):
-      PID=-300
+        PID=-300
     previous_error = error
     return PID
   
-  def talker(self, buoy):
+  def talker(self,buoy):
 
     self.x = buoy.x
     self.y = buoy.y
     self.z = buoy.z    
     self.w = buoy.w
-    
+
   def convert(self):
+    self.Z = math.degrees(math.atan2(2.0*self.y*self.z + self.w*self.x), self.w*self.w - self.x*self.x - self.y*self.y + self.z*self.z);
+    return self.Z
+
+  def convert_linear(self):
+    return math.sqrt(self.x*self.x + self.y*self.y)
   
-    t0 = +2.0 * (self.w * self.x + self.y * self.z)
-    t1 = +1.0 - 2.0 * (self.x * self.x + self.y * self.y)
-    self.X = math.degrees(math.atan2(t0, t1))
+  def getPID_linear(self, kd, ki, kp, actual, desired, pid_i, previous_error):
+    
+    error = actual - desired
+    pid_p = kp*error
+    pid_i = pid_i + (ki*error)
+    pid_d = kd*(error - previous_error)
+    previous_error = error
+    PID = pid_p + pid_i + pid_d
+    
+    return PID
 
-    t2 = +2.0 * (self.w * self.y - self.z * self.x)
-    t2 = +1.0 if t2 > +1.0 else t2
-    t2 = -1.0 if t2 < -1.0 else t2
-    self.Y = math.degrees(math.asin(t2))
-
-    t3 = +2.0 * (self.w * self.z +self.x * self.y)
-    t4 = +1.0 - 2.0 * (self.y * self.y + self.z * self.z)
-    self.Z = math.degrees(math.atan2(t3, t4))
-
-    return self.X, self.Y, self.Z
 
 if __name__=='__main__':
+
   try:
       x = pid()
       x.start()
