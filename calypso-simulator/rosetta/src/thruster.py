@@ -35,8 +35,6 @@ class rosetta :
     
     self.rate = rospy.Rate(10)
 
-
-
   def converter(self,x):
     # X=pwm Y=rpm
     coeffs = list()
