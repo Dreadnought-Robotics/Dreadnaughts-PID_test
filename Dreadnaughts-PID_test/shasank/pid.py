@@ -1,7 +1,5 @@
 #! /usr/bin/python3
 import rospy
-from std_msgs.msg import Float64
-from std_msgs.msg import Int64
 from calypso_msgs.msg import buoy
 from calypso_msgs.msg import gypseas
 from sensor_msgs.msg import Imu
@@ -14,22 +12,23 @@ class pid:
 
     rospy.init_node('calypso_pid', anonymous=False)
 
-    self.kp_pitch = 50
-    self.kd_pitch = 65
+    self.kp_pitch = 1
+    self.kd_pitch = 50
     self.ki_pitch = 0
-    self.kp_roll = 100
-    self.kd_roll = 0
+    self.kp_roll = 1
+    self.kd_roll = 50
     self.ki_roll = 0  
 
     self.pid_i_pitch = 0
     self.pid_i_roll = 0
     self.previous_error_pitch = 0
     self.previous_error_roll = 0
+          
+    self.throttle1 = 0
+    self.throttle2 = 0
+    self.throttle3 = 0
+    self.throttle4 = 0
 
-    self.throttle1 = 1600
-    self.throttle2 = 1650
-    self.throttle3 = 1650
-    self.throttle4 = 1600
     self.rate = rospy.Rate(10)
     self.pwmspeed = rospy.Publisher('/rosetta/gypseas', gypseas, queue_size=1000)
     
@@ -48,7 +47,7 @@ class pid:
 
       self.dolphins=rospy.Subscriber("/rosetta/imu/data",buoy, self.talker)
       self.angvel = rospy.Subscriber("/calypso_sim/imu/data", Imu, self.getvel)
-      # self.gypseas=rospy.Subscriber("/calypso_pid/topple_checker",gypseas, self.getgyp)
+      self.gypseas=rospy.Subscriber("/calypso_pid/topple_checker",gypseas, self.getgyp)
       self.roll , self.pitch , self.yaw = self.convert()
       print("roll")
       print(self.roll)
@@ -57,12 +56,13 @@ class pid:
       print(self.pitch)
       self.PID_pitch = self.getPID(self.kd_pitch, self.ki_pitch, self.kp_pitch, self.pitch, 0, self.pid_i_pitch, self.previous_error_pitch, self.angvel_x)
       self.PID_roll = self.getPID(self.kd_roll, self.ki_roll, self.kp_roll, self.roll, 0, self.pid_i_roll, self.previous_error_roll, self.angvel_y)
+
       
       self.g=gypseas()
-      self.g.t1 = round(self.throttle1 + self.PID_roll)# - self.PID_pitch)
-      self.g.t2 = round(self.throttle2 - self.PID_roll)# - self.PID_pitch)
-      self.g.t3 = round(self.throttle3 - self.PID_roll)# + self.PID_pitch)
-      self.g.t4 = round(self.throttle4 + self.PID_roll)# + self.PID_pitch)
+      self.g.t1 = round(self.throttle1 + self.PID_roll - self.PID_pitch)
+      self.g.t2 = round(self.throttle2 - self.PID_roll - self.PID_pitch)
+      self.g.t3 = round(self.throttle3 - self.PID_roll + self.PID_pitch)
+      self.g.t4 = round(self.throttle4 + self.PID_roll + self.PID_pitch)
       
       print("PID-roll")
       print(self.PID_roll)
@@ -75,6 +75,8 @@ class pid:
       
       
       self.rate.sleep()
+
+
 
   def getvel(self, Imu):
     self.angvel_x = Imu.angular_velocity.x
