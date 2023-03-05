@@ -36,6 +36,21 @@ class rosetta :
     self.rate = rospy.Rate(10)
 
   def converter(self,x):
+  
+    if (x>=1472 and x<=1528):
+      y=0
+    
+    else:
+      y=2.84*(math.e**10) + -1.97*x*(math.e**8) + 613965*(x**2) + -1127*(x**3) + 1.35*(x**4) + -1.1*(math.e**-3)*(x**5) 
+      y=y+ 6.25*(math.e**-7)*(x**6) + -2.41*(math.e**-10)*(x**7) + 6.09*(math.e**-14)*(x**8) + -9.06*(math.e**-18)*(x**9) 
+      y=y+ 6.04*(math.e**-22)*(x**10)
+
+    if x<1472:
+      y=-y
+
+    return y*0.1047198
+
+  def old_converter(self,x):
     # X=pwm Y=rpm
     coeffs = list()
     coeffs.append(-1.6453836430727448e-05)
@@ -78,21 +93,21 @@ class rosetta :
       self.gypseas=rospy.Subscriber("/rosetta/gypseas", gypseas, self.talker1)
       self.dolphins=rospy.Subscriber("/rosetta/dolphins", dolphins, self.talker2)
       self.t=Float64()
-      self.t.data=self.old_converter(self.t1)
+      self.t.data=self.converter(self.t1)
       self.PBLDC_1.publish(self.t)
-      self.t.data=self.old_converter(self.t2)
+      self.t.data=self.converter(self.t2)
       self.PBLDC_2.publish(self.t)
-      self.t.data=self.old_converter(self.t3)
+      self.t.data=self.converter(self.t3)
       self.PBLDC_3.publish(self.t)
-      self.t.data=self.old_converter(self.t4)
+      self.t.data=self.converter(self.t4)
       self.PBLDC_4.publish(self.t)
-      self.t.data=self.old_converter(self.d1)
+      self.t.data=self.converter(self.d1)
       self.PBLDC_5.publish(self.t)
-      self.t.data=self.old_converter(self.d2)
+      self.t.data=self.converter(self.d2)
       self.PBLDC_6.publish(self.t)
-      self.t.data=self.old_converter(self.d3)
+      self.t.data=self.converter(self.d3)
       self.PBLDC_7.publish(self.t)
-      self.t.data=self.old_converter(self.d4)
+      self.t.data=self.converter(self.d4)
       self.PBLDC_8.publish(self.t)
       
       self.rate.sleep()

@@ -12,10 +12,10 @@ if __name__ == '__main__':
 
   dpub=rospy.Publisher("/rosetta/dolphins",dolphins,queue_size=1000)
   g=gypseas()
-  g.t1=1590
-  g.t2=1590
-  g.t3=1590
-  g.t4=1590
+  g.t1=1682
+  g.t2=1681
+  g.t3=1680
+  g.t4=1679
   d=dolphins()
   d.d1=1500
   d.d2=1500
