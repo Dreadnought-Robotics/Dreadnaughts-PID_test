@@ -12,10 +12,10 @@ if __name__ == '__main__':
 
   dpub=rospy.Publisher("/rosetta/dolphins",dolphins,queue_size=1000)
   g=gypseas()
-  g.t1=1590
-  g.t2=1590
-  g.t3=1590
-  g.t4=1590
+  g.t1=1574
+  g.t2=1574
+  g.t3=1574
+  g.t4=1574
   d=dolphins()
   d.d1=1500
   d.d2=1500
@@ -23,7 +23,7 @@ if __name__ == '__main__':
   d.d4=1500
   while(True):
     gpub.publish(g)
-    dpub.publish(d)
+    # dpub.publish(d)
     print("done")
     rate.sleep()
 

@@ -22,21 +22,10 @@ class rosetta :
     self.pitch=0
     self.yaw=0
     self.w=0
-    # self.linear_x = 0
-    # self.linear_y = 0
-    # self.linear_z = 0
-
-    # self.time_lapsed = 0
-    # self.displc_x = 0
-    # self.displc_y = 0
-    # self.prev_vel_x = 0
-    # self.prev_vel_y = 0
-    # self.acc_x = 0
-    # self.acc_y = 0
 
     self.imu_pub = rospy.Publisher('/rosetta/imu/data', buoy, queue_size=1000)
     
-    self.rate = rospy.Rate(100)
+    self.rate = rospy.Rate(10)
   
   def convert(self,w, x, y, z):
     
@@ -64,14 +53,6 @@ class rosetta :
     self.z=imu.orientation.z
     self.roll,self.pitch,self.yaw=self.convert(imu.orientation.w,self.x,self.y,self.z)
     self.w=imu.orientation.w
-    # self.linear_x = 
-
-  # def getposition(self, acc, previous_vel, previous_distance):
-  #   vel = previous_vel + acc*(self.time_lapsed)
-  #   distance = vel*(self.time_lapsed) + 0.5*(acc * self.time_lapsed * self.time_lapsed)
-  #   previous_vel = vel
-  #   previous_distance = distance
-  #   return distance
     
   def start(self):
 
