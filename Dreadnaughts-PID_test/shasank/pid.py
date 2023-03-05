@@ -54,8 +54,8 @@ class pid:
 
       print("pitch")
       print(self.pitch)
-      self.PID_pitch = self.getPID(self.kd_pitch, self.ki_pitch, self.kp_pitch, self.pitch, 0, self.pid_i_pitch, self.previous_error_pitch, self.angvel_x)
-      self.PID_roll = self.getPID(self.kd_roll, self.ki_roll, self.kp_roll, self.roll, 0, self.pid_i_roll, self.previous_error_roll, self.angvel_y)
+      self.PID_pitch = self.getPID(self.kd_pitch, self.ki_pitch, self.kp_pitch, self.pitch, 0, self.pid_i_pitch, self.angvel_x)
+      self.PID_roll = self.getPID(self.kd_roll, self.ki_roll, self.kp_roll, self.roll, 0, self.pid_i_roll, self.angvel_y)
 
       
       self.g=gypseas()
@@ -83,7 +83,7 @@ class pid:
     self.angvel_y = Imu.angular_velocity.y
     self.angvel_z = Imu.angular_velocity.z
 
-  def getPID(self, kd, ki, kp, actual, desired, pid_i, previous_error, angvel):
+  def getPID(self, kd, ki, kp, actual, desired, pid_i, angvel):
   
       error = desired - actual
       pid_p = kp*error
@@ -101,7 +101,6 @@ class pid:
           PID=90
       if(PID < -90):
           PID=-90
-      previous_error = error
       return PID
   
   def talker(self,buoy):

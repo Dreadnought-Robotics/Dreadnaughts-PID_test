@@ -15,15 +15,15 @@ class hover:
         rospy.init_node("hovering")
         self.rate = rospy.Rate(10)
         self.subscriber = rospy.Subscriber("/rosetta/imu/data", buoy, self.getimu)
-        self.publisher  = rospy.Publisher("/calypso_pid/topple_checker", gypseas,queue_size=1000)
+        self.publisher  = rospy.Publisher("/rosetta/gypseas", gypseas,queue_size=1000)
         self.accdata=rospy.Subscriber("/calypso_sim/imu/data",Imu, self.talker2)
         self.height_to_move = 3 #set this
         self.time_lapsed = 0
         self.altitude = 0
 
-        self.kp = 1
-        self.ki = 80
-        self.kd = 30   
+        self.kp = 30
+        self.ki = 50
+        self.kd = 1
         self.previous_throttle = 0
         self.integrator_throttle = 0
         self.vel = 0
@@ -58,7 +58,7 @@ class hover:
             print("altitude")
             print(self.altitude)
 
-            self.throttle_to_map = self.getPID(self.kp, self.ki, self.kd, self.altitude, self.height_to_move, self.integrator_throttle, self.previous_throttle, self.acc_z)
+            self.throttle_to_map = self.getPID(self.kd, self.ki, self.kp, self.altitude, self.height_to_move, self.integrator_throttle, self.previous_throttle, self.acc_z)
             if self.throttle_to_map>=0:
                 self.throttle = self.m(self.throttle_to_map)
             else:
