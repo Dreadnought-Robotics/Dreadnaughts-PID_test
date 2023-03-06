@@ -70,8 +70,10 @@ class pid:
       print("PID-pitch")
       print(self.PID_pitch)
 
+      
       self.pwmspeed.publish(self.g)
-            
+      
+      
       self.rate.sleep()
 
 

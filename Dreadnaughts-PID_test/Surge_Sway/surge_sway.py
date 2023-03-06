@@ -63,7 +63,7 @@ class surge_sway:
             self.acc_y.append(self.acc_imu_y)
             temp_vel_x = self.integrate(self.acc_x, self.time)
             temp_vel_y = self.integrate(self.acc_y, self.time)
-            self.vel_x.append(temp_vel_x) 
+            self.vel_x.append(temp_vel_x)
             self.vel_y.append(temp_vel_y)
             self.x_disp = self.integrate(self.vel_x, self.time)
             self.y_disp = self.integrate(self.vel_y, self.time)
@@ -72,40 +72,39 @@ class surge_sway:
 
             self.g = dolphins()
 
-            # while self.x_disp > (self.x_desired - 5):
-            self.throttle_to_map = self.getPID(self.x_disp, self.x_desired, self.i_throttle, self.prev_throttle)
-            if self.throttle_to_map>=0:
-                self.throttle = self.m(self.throttle_to_map)
-                self.g.d3 = int(self.throttle)
-                self.g.d4 = int(self.throttle)
-                self.g.d2  = int(1400) 
-                self.g.d1 = int(1400)
-                
-            else:
-                self.throttle = self.m(self.throttle_to_map)
-                self.g.d1 = int(self.throttle)
-                self.g.d2 = int(self.throttle)
-                self.g.d3 = int(1400)
-                self.g.d4 = int(1400)
-                
+            while self.x_disp > (self.x_desired - 5):
+                self.throttle_to_map = self.getPID(self.x_disp, self.x_desired, self.i_throttle, self.prev_throttle)
+                if self.throttle_to_map>=0:
+                    self.throttle = self.m(self.throttle_to_map)
+                    self.g.d3 = int(self.throttle)
+                    self.g.d4 = int(self.throttle)
+                    self.g.d2  = 0 
+                    self.g.d1 = 0
+                    
+                else:
+                    self.throttle = self.m(self.throttle_to_map)
+                    self.g.d1 = int(self.throttle)
+                    self.g.d2 = int(self.throttle)
+                    self.g.d3 = 0
+                    self.g.d4 = 0
                 self.publisher.publish(self.g)
             
-            # while self.y_disp > (self.y_desired - 5):
-            #     self.throttle_to_map = self.getPID(self.x_disp, self.x_desired, self.i_throttle, self.prev_throttle)
-            #     if self.throttle_to_map>=0:
-            #         self.throttle = self.m(self.throttle_to_map)
-            #         self.g.d2 = int(self.throttle)
-            #         self.g.d3 = int(self.throttle)
-            #         self.g.d4  = 0 
-            #         self.g.d1 = 0
+            while self.y_disp > (self.y_desired - 5):
+                self.throttle_to_map = self.getPID(self.x_disp, self.x_desired, self.i_throttle, self.prev_throttle)
+                if self.throttle_to_map>=0:
+                    self.throttle = self.m(self.throttle_to_map)
+                    self.g.d2 = int(self.throttle)
+                    self.g.d3 = int(self.throttle)
+                    self.g.d4  = 0 
+                    self.g.d1 = 0
                     
-            #     else:
-            #         self.throttle = self.m(self.throttle_to_map)
-            #         self.g.d1 = int(self.throttle)
-            #         self.g.d4 = int(self.throttle)
-            #         self.g.d2 = 0
-            #         self.g.d3 = 0
-            #     self.publisher.publish(self.g)
+                else:
+                    self.throttle = self.m(self.throttle_to_map)
+                    self.g.d1 = int(self.throttle)
+                    self.g.d4 = int(self.throttle)
+                    self.g.d2 = 0
+                    self.g.d3 = 0
+                self.publisher.publish(self.g)
             
             self.rate.sleep()
 
