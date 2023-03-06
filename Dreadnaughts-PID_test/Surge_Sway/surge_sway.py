@@ -1,111 +1,146 @@
-#! /usr/bin/python3
+#!usr/bin/python3
+
 import rospy
-from std_msgs.msg import Float64
-from std_msgs.msg import Int64
-from std_msgs.msg import String
-from calypso_msgs.msg import buoy
 from calypso_msgs.msg import dolphins
-from calypso_msgs.msg import gypseas
-import pickle
+from calypso_msgs.msg import buoy
+from sensor_msgs.msg import Imu
+import time
+from scipy.interpolate import interp1d
+import scipy.integrate
 import math
 
-class pid:
+class surge_sway:
+    def __init__(self):
 
-  def __init__(self):
+        rospy.init_node("Surge_Sway",anonymous=False)
+        self.rate = rospy.Rate(10)
+        self.publisher  = rospy.Publisher("/rosetta/dolphins", dolphins,queue_size=1000)
+        self.accdata=rospy.Subscriber("/calypso_sim/imu/data",Imu, self.talker2)
 
-    rospy.init_node('calypso_pid', anonymous=False)
-    # To move forward/backward
-    self.ki_surge  = 0.02
-    self.kd_surge = 0.2
-    self.kp_surge = 2
+        #Final Pts.
+        self.x_desired = 0
+        self.y_desired = 0
 
-    self.ki_sway = 0.02
-    self.kd_sway = 0.2
-    self.kp_sway = 2  
+        #Accleration Variables
+        self.time_lapsed = 0
+        self.x_disp = 0
+        self.y_disp = 0
+        self.prev_throttle = 0
+        self.i_throttle = 0
+        self.prev_acc_x = 0
+        self.prev_acc_y = 0
 
-    self.previous_x = 0
-    self.previous_y = 0
+        #PID Values
+        self.kp_x = 1
+        self.ki_x = 0
+        self.kd_x = 0   
+        self.kp_y = 1
+        self.ki_y = 0
+        self.kd_y = 0
+        
+        self.m = interp1d([0, 30],[1579,2000])
+        self.n = interp1d([-30, 0], [1200,1468])
+        self.start_time = time.time()
 
-    self.pid_i_surge = 0
-    self.pid_i_sway = 0
-    self.previous_error_sway = 0
-    self.previous_error_surge = 0
+        self.time = []
+        self.acc_x = []
+        self.acc_y = []
+        self.vel_x = []
+        self.vel_y = []
+        
 
-    self.test_desire_x = 0
-    self.test_desire_y = 0
+    def start(self):
+        
+        self.x_desired = int(input("Enter x_desired: "))
+        self.y_desired = int(input("Enter y_desired: "))
 
-    self.x=0
-    self.y=0
-    
-    self.throttle = 1000
-    self.rate = rospy.Rate(10)
-    self.pwm_surge_speed = rospy.Publisher('/rosetta/dolphins', dolphins, queue_size = 1000)
-    self.pwmspeed = rospy.Publisher('/rosetta/gypseas', gypseas, queue_size=1000)
-    # self.complete = rospy.Publisher('test_complete',String, queue_size=10)
-    
-    self.rate = rospy.Rate(100)
+        while not rospy.is_shutdown():
+
+            end_time = time.time()
+            self.time_lapsed = end_time - self.start_time
+            self.time.append(self.time_lapsed)
+            self.acc_x.append(self.acc_imu_x)
+            self.acc_y.append(self.acc_imu_y)
+            temp_vel_x = self.integrate(self.acc_x, self.time)
+            temp_vel_y = self.integrate(self.acc_y, self.time)
+            self.vel_x.append(temp_vel_x) 
+            self.vel_y.append(temp_vel_y)
+            self.x_disp = self.integrate(self.vel_x, self.time)
+            self.y_disp = self.integrate(self.vel_y, self.time)
+            print("Displacement in X: ", self.x_disp)
+            print("Displacement in Y: ", self.y_disp)
+
+            self.g = dolphins()
+
+            # while self.x_disp > (self.x_desired - 5):
+            self.throttle_to_map = self.getPID(self.x_disp, self.x_desired, self.i_throttle, self.prev_throttle)
+            if self.throttle_to_map>=0:
+                self.throttle = self.m(self.throttle_to_map)
+                self.g.d3 = int(self.throttle)
+                self.g.d4 = int(self.throttle)
+                self.g.d2  = int(1400) 
+                self.g.d1 = int(1400)
+                
+            else:
+                self.throttle = self.m(self.throttle_to_map)
+                self.g.d1 = int(self.throttle)
+                self.g.d2 = int(self.throttle)
+                self.g.d3 = int(1400)
+                self.g.d4 = int(1400)
+                
+                self.publisher.publish(self.g)
+            
+            # while self.y_disp > (self.y_desired - 5):
+            #     self.throttle_to_map = self.getPID(self.x_disp, self.x_desired, self.i_throttle, self.prev_throttle)
+            #     if self.throttle_to_map>=0:
+            #         self.throttle = self.m(self.throttle_to_map)
+            #         self.g.d2 = int(self.throttle)
+            #         self.g.d3 = int(self.throttle)
+            #         self.g.d4  = 0 
+            #         self.g.d1 = 0
+                    
+            #     else:
+            #         self.throttle = self.m(self.throttle_to_map)
+            #         self.g.d1 = int(self.throttle)
+            #         self.g.d4 = int(self.throttle)
+            #         self.g.d2 = 0
+            #         self.g.d3 = 0
+            #     self.publisher.publish(self.g)
+            
+            self.rate.sleep()
+
+    def talker2(self, Imu):
+        self.acc_imu_x = Imu.linear_acceleration.x
+        self.acc_imu_y = Imu.linear_acceleration.y
+
+    def integrate(self, y, x):
+        return scipy.integrate.trapz(y, x)
+        
+    def getPID(self, actual, desired, pid_i, previous_error):
   
-  def start(self):
+        error = desired - actual
+        pid_p = self.kp_x*error
+        pid_i = pid_i + error
+        pid_d = self.kd_x*(error - previous_error)
+        if pid_i>max(30-pid_p-pid_d, 0):
+            pid_i = max(30-pid_p-pid_d,0)
+        elif pid_i<min(-30-pid_i-pid_d, 0):
+            pid_i = min(-30-pid_p-pid_d,0)
+        pid_i_final = self.ki_x*pid_i
+        PID = pid_p + (pid_i_final + pid_d)/self.time_lapsed
 
-    self.test_desire_x = int(input("Enter the location in x: "))
-    self.test_desire_y = int(input("Enter the location in y: "))
+        if(PID > 30):
+            PID=30
+        if(PID < -30):
+            PID=-30
 
-    while not rospy.is_shutdown():
-
-      self.linearxy=rospy.Subscriber('/rosetta/imu/data', buoy, self.talker)
-
-      #MOve the AUV forward
-      self.PID_surge = self.getPID_linear(self.kd_surge, self.ki_surge, self.kp_surge, self.y, self.test_desire_x, self.pid_i_surge, self.previous_error_surge)
-      self.PID_sway = self.getPID_linear(self.kd_sway, self.kd_sway, self.kp_sway, self.x, self.test_desire_y, self.pid_i_sway, self.previous_error_sway)
-      
-      self.s=dolphins()
-      
-      #To move the AUV up to work surge and sway
-      self.g=gypseas()
-      self.g.t1 = int(1574)
-      self.g.t2 = int(1574)
-      self.g.t3 = int(1574)
-      self.g.t4 = int(1574)
-      self.pwmspeed.publish(self.g)
-      
-      #To sway (translate in y)
-      if self.test_desire_x != self.x:
-        self.s.d2 = int(self.throttle + self.PID_sway)
-        self.s.d3 = int(self.throttle + self.PID_sway)
-        # print("Publishing x values")
-        # print(self.x)
-        self.pwm_surge_speed.publish(self.s)
-
-      #To surge (translate in x)
-      elif self.test_desire_y != self.y:
-        self.s.d3 = int(self.throttle + self.PID_surge)
-        self.s.d4 = int(self.throttle + self.PID_surge)
-        # print("Publishing y values")
-        # print(self.y)
-        self.pwm_surge_speed.publish(self.s)
-      
-      self.rate.sleep()
-
-  def talker(self,buoy):
-    self.x = round(buoy.x,5)
-    self.y = round(buoy.y,5)
-
-  def getPID_linear(self, kd, ki, kp, actual, desired, pid_i, previous_error):
-
-    error = desired - actual
-    pid_p = error
-    pid_i += error
-    pid_d = error - previous_error
-    previous_error = error
-    PID = kp*pid_p + ki*pid_i + kd*pid_d
-    print(error," ",PID)
-    return PID
-
+        previous_error = error
+        print("PID values: ", PID)
+        return PID
 
 if __name__=='__main__':
-
-  try:
-      x = pid()
-      x.start()
-  except rospy.ROSInterruptException:
-      pass
+    try:
+        x = surge_sway()
+        x.start()
+    except rospy.ROSInterruptException:
+        pass

@@ -6,7 +6,11 @@ from calypso_msgs.msg import buoy
 from sensor_msgs.msg import Imu
 import time
 from scipy.interpolate import interp1d
+<<<<<<< HEAD
 from scipy.integrate import trapz
+=======
+from scipy.integrate import trapezoid
+>>>>>>> 688823f6a5f9eb560db4d040574e6ff9b22143bf
 import math
 
 class hover:
@@ -17,7 +21,11 @@ class hover:
         self.subscriber = rospy.Subscriber("/rosetta/imu/data", buoy, self.getimu)
         self.publisher  = rospy.Publisher("/calypso_pid/topple_checker", gypseas,queue_size=1000)
         self.accdata=rospy.Subscriber("/calypso_sim/imu/data",Imu, self.talker2)
+<<<<<<< HEAD
         self.x_desired = 0
+=======
+        self.height_to_move = 3 #set this
+>>>>>>> 688823f6a5f9eb560db4d040574e6ff9b22143bf
         self.time_lapsed = 0
         self.altitude = 0
 
@@ -58,7 +66,11 @@ class hover:
             print("altitude")
             print(self.altitude)
 
+<<<<<<< HEAD
             self.throttle_to_map = self.getPID(self.kp, self.ki, self.kd, self.altitude, self.x_desired, self.integrator_throttle, self.previous_throttle, self.acc_z)
+=======
+            self.throttle_to_map = self.getPID(self.kp, self.ki, self.kd, self.altitude, self.height_to_move, self.integrator_throttle, self.previous_throttle, self.acc_z)
+>>>>>>> 688823f6a5f9eb560db4d040574e6ff9b22143bf
             if self.throttle_to_map>=0:
                 self.throttle = self.m(self.throttle_to_map)
             else:
@@ -75,6 +87,11 @@ class hover:
             self.g.t4 = int(self.throttle)  
             self.publisher.publish(self.g)
             self.rate.sleep()
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 688823f6a5f9eb560db4d040574e6ff9b22143bf
 
     def getimu(self, buoy):
         self.x = buoy.x
@@ -87,7 +104,11 @@ class hover:
         self.acc_y = Imu.linear_acceleration.y
 
     def integrate(self, y, x):
+<<<<<<< HEAD
         return trapz(y, x)
+=======
+        return trapezoid(y, x)
+>>>>>>> 688823f6a5f9eb560db4d040574e6ff9b22143bf
         
     
     def getPID(self, kd, ki, kp, actual, desired, pid_i, previous_error, feedforward):
