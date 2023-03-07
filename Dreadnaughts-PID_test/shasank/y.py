@@ -77,8 +77,7 @@ class y:
         print(self.yaw)
         self.error_yaw = self.req_yaw - (self.yaw - self.yaw_init)
         self.PID_yaw = self.getPID(self.kd_yaw, self.ki_yaw, self.kp_yaw, self.error_yaw, 0, self.pid_i_yaw, self.angvel_z)
-
-        
+  
         self.g.d1 = round(self.throttle1 - self.PID_yaw)
         self.g.d2 = round(self.throttle2 + self.PID_yaw)
         self.g.d3 = round(self.throttle3 - self.PID_yaw)

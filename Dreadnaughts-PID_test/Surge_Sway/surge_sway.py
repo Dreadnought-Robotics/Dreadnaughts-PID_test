@@ -3,6 +3,7 @@
 import rospy
 from calypso_msgs.msg import dolphins
 from sensor_msgs.msg import Imu
+from calypso_msgs.msg import buoy
 import time
 from scipy.interpolate import interp1d
 import scipy.integrate
@@ -14,6 +15,7 @@ class surge_sway:
         rospy.init_node("Surge_Sway",anonymous=False)
         self.rate = rospy.Rate(10)
         self.publisher  = rospy.Publisher("/rosetta/dolphins", dolphins,queue_size=1000)
+        self.dolphins=rospy.Subscriber("/rosetta/imu/data",buoy, self.talker)
         self.accdata=rospy.Subscriber("/calypso_sim/imu/data",Imu, self.talker2)
         
         #Dolphin Variables
@@ -21,9 +23,13 @@ class surge_sway:
         self.x_pos_pwm = 0
         self.x_neg_pwm = 0
 
+        #Yaw 
+        self.yaw = 0
+        self.kp_yaw = 20
+        self.kd_yaw = 40
+        self.ki_yaw = 0
 
-
-        
+        #PWM variables 
         self.y_pos_pwm = 0
         self.y_neg_pwm = 0
         self.yaw_pos_pwm = 0
@@ -93,11 +99,11 @@ class surge_sway:
             print("Displacement in Y: ", self.y_disp)
 
             self.set_zero()
-            # x_pwm = self.getPID_xy(self.x_disp, self.x_desired, self.pid_i_x)
-            # if x_pwm >0:
-            #     self.x_pos_pwm = self.m(x_pwm)
-            # else:
-            #     self.x_pos_pwm = self.m(-x_pwm)
+            x_pwm = self.getPID_xy(self.x_disp, self.x_desired, self.pid_i_x)
+            if x_pwm >0:
+                self.x_pos_pwm = self.m(x_pwm)
+            else:
+                self.x_pos_pwm = self.m(-x_pwm)
 
             y_pwm = self.getPID_xy(self.y_disp, self.y_desired, self.pid_i_y)
             if y_pwm > 0:
@@ -117,6 +123,9 @@ class surge_sway:
             
             self.publisher.publish(self.g)
             self.rate.sleep()
+
+    def talker(self, buoy):
+        self.yaw = buoy.yaw
 
     def talker2(self, Imu):
         self.acc_imu_x = Imu.linear_acceleration.x
