@@ -34,22 +34,23 @@ class surge_sway:
         self.time_lapsed = 0
         self.x_disp = 0
         self.y_disp = 0
-        self.prev_throttle_x = 0
-        self.prev_throttle_y = 0
-        self.i_throttle = 0
         self.prev_acc_x = 0
         self.prev_acc_y = 0
+        self.acc_imu_x = 0
+        self.acc_imu_y = 0
 
         #PID Values
-        self.kp_x = 1
+        self.kp_x = 2
         self.ki_x = 0
         self.kd_x = 0   
         self.kp_y = 1
         self.ki_y = 0
         self.kd_y = 0
+        self.pid_i_x = 0
+        self.pid_i_y = 0 
         
-        self.m = interp1d([0, 30],[1600,2000])
-        self.n = interp1d([-30, 0], [1200,1500])
+        self.m = interp1d([0, 50],[100,300])
+        # self.n = interp1d([-30, 0], [1200,1500])
         self.start_time = time.time()
 
         self.time = []
@@ -88,18 +89,18 @@ class surge_sway:
             print("Displacement in X: ", self.x_disp)
             print("Displacement in Y: ", self.y_disp)
 
-            self.set_1500()
-            x_pwm = self.getPID_xy(self.x_disp, self.x_desired)
+            self.set_zero()
+            x_pwm = self.getPID_xy(self.x_disp, self.x_desired, self.pid_i_x)
             if x_pwm >0:
-                self.x_pos_pwm = x_pwm
+                self.x_pos_pwm = self.m(x_pwm)
             else:
-                self.x_neg_pwm = -x_pwm
+                self.x_pos_pwm = self.m(-x_pwm)
 
-            y_pwm = self.getPID_xy(self.y_disp, self.y_desired)
+            y_pwm = self.getPID_xy(self.y_disp, self.y_desired, self.pid_i_y)
             if y_pwm > 0:
-                self.y_pos_pwm = y_pwm 
+                self.x_pos_pwm = self.m(y_pwm) 
             else: 
-                self.y_neg_pwm = -y_pwm
+                self.x_pos_pwm = self.m(-y_pwm)
 
             self.g = dolphins()
 
@@ -107,7 +108,7 @@ class surge_sway:
             self.g.d2 = int(self.throttle + self.x_neg_pwm + self.y_pos_pwm + self.yaw_neg_pwm)
             self.g.d3 = int(self.throttle + self.x_pos_pwm + self.y_neg_pwm + self.yaw_pos_pwm)
             self.g.d4 = int(self.throttle + self.x_pos_pwm + self.y_pos_pwm + self.yaw_neg_pwm)
-
+            self.publisher.publish(self.g)
             self.rate.sleep()
 
     def talker2(self, Imu):
@@ -117,7 +118,7 @@ class surge_sway:
     def integrate(self, y, x):
         return scipy.integrate.trapz(y, x)
         
-    def getPID_xy(self, actual, desired):
+    def getPID_xy(self, actual, desired, pid_i):
   
         error = desired - actual
         previous_error = error
@@ -133,10 +134,10 @@ class surge_sway:
         pid_i_final = self.ki_x*pid_i
         PID = pid_p + pid_i_final + pid_d
 
-        if(PID > 150):
-            PID=150
-        if(PID < -150):
-            PID=-150
+        if(PID > 50):
+            PID=50
+        if(PID < -50):
+            PID=-50
         print("PID values: ", PID)
         return PID
     
@@ -145,11 +146,11 @@ class surge_sway:
         #Pruthvi Ad your yaw PID Code here    
         return
     
-    def set_1500(self):
-        self.x_pos_pwm = 1500
-        self.x_neg_pwm = 1500
-        self.y_pos_pwm = 1500
-        self.y_neg_pwm = 1500
+    def set_zero(self):
+        self.x_pos_pwm = 0
+        self.x_neg_pwm = 0
+        self.y_pos_pwm = 0
+        self.y_neg_pwm = 0
 
 if __name__=='__main__':
     try:
