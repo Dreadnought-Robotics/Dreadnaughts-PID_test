@@ -2,7 +2,6 @@
 
 import rospy
 from calypso_msgs.msg import dolphins
-from calypso_msgs.msg import buoy
 from sensor_msgs.msg import Imu
 import time
 from scipy.interpolate import interp1d
@@ -21,6 +20,10 @@ class surge_sway:
         self.throttle = 1500
         self.x_pos_pwm = 0
         self.x_neg_pwm = 0
+
+
+
+        
         self.y_pos_pwm = 0
         self.y_neg_pwm = 0
         self.yaw_pos_pwm = 0
@@ -50,7 +53,7 @@ class surge_sway:
         self.pid_i_y = 0 
         
         self.m = interp1d([0, 50],[100,300])
-        # self.n = interp1d([-30, 0], [1200,1500])
+        # self.n = interp1d([-50, 0], [100,1500])
         self.start_time = time.time()
 
         self.time = []
@@ -102,6 +105,9 @@ class surge_sway:
             else: 
                 self.y_pos_pwm = self.m(-y_pwm)
 
+            #Call your yaw function here to a temp variable. Then check the direction to yaw and set the pwm for that
+            #Yaw variables are self.yaw_pos_pwm and self.yaw_neg_pwm
+
             self.g = dolphins()
 
             self.g.d1 = int(self.throttle + self.x_neg_pwm + self.y_neg_pwm + self.yaw_pos_pwm)
@@ -142,7 +148,7 @@ class surge_sway:
         print("PID values: ", PID)
         return PID
     
-    def getPID_yaw(self, actual, desired, pid_i, previous_error):
+    def getPID_yaw(self):
   
         #Pruthvi Ad your yaw PID Code here    
         return
