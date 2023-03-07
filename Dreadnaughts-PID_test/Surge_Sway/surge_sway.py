@@ -18,7 +18,7 @@ class surge_sway:
         self.accdata=rospy.Subscriber("/calypso_sim/imu/data",Imu, self.talker2)
         
         #Dolphin Variables
-        self.throttle = 0
+        self.throttle = 1500
         self.x_pos_pwm = 0
         self.x_neg_pwm = 0
         self.y_pos_pwm = 0
@@ -88,18 +88,18 @@ class surge_sway:
             print("Displacement in X: ", self.x_disp)
             print("Displacement in Y: ", self.y_disp)
 
-            
-            x_pwm = self.getPID_xy(self.x_disp, self.x_desired, self.i_throttle, self.prev_throttle_x)
-            if x_pwm >1500:
+            self.set_1500()
+            x_pwm = self.getPID_xy(self.x_disp, self.x_desired)
+            if x_pwm >0:
                 self.x_pos_pwm = x_pwm
             else:
-                self.x_neg_pwm = x_pwm
+                self.x_neg_pwm = -x_pwm
 
-            y_pwm = self.getPID_xy(self.y_disp, self.y_desired, self.i_throttle, self.prev_throttle_y)
-            if y_pwm > 1500:
+            y_pwm = self.getPID_xy(self.y_disp, self.y_desired)
+            if y_pwm > 0:
                 self.y_pos_pwm = y_pwm 
             else: 
-                self.y_neg_pwm = y_pwm
+                self.y_neg_pwm = -y_pwm
 
             self.g = dolphins()
 
@@ -117,25 +117,26 @@ class surge_sway:
     def integrate(self, y, x):
         return scipy.integrate.trapz(y, x)
         
-    def getPID_xy(self, actual, desired, pid_i, previous_error):
+    def getPID_xy(self, actual, desired):
   
         error = desired - actual
-        pid_p = self.kp_x*error
-        pid_i = pid_i + error
-        pid_d = self.kd_x*(error - previous_error)
-        if pid_i>max(30-pid_p-pid_d, 0):
-            pid_i = max(30-pid_p-pid_d,0)
-        elif pid_i<min(-30-pid_i-pid_d, 0):
-            pid_i = min(-30-pid_p-pid_d,0)
-        pid_i_final = self.ki_x*pid_i
-        PID = pid_p + (pid_i_final + pid_d)/self.time_lapsed
-
-        if(PID > 30):
-            PID=30
-        if(PID < -30):
-            PID=-30
-
         previous_error = error
+        pid_p = self.kp_x*error
+        pid_d = self.kd_x*(error - previous_error)
+        pid_i = pid_i + error
+
+        if pid_i>max(50-pid_p-pid_d, 0):
+            pid_i = max(50-pid_p-pid_d,0)
+        elif pid_i<min(-50-pid_i-pid_d, 0):
+            pid_i = min(-50-pid_p-pid_d,0)
+
+        pid_i_final = self.ki_x*pid_i
+        PID = pid_p + pid_i_final + pid_d
+
+        if(PID > 150):
+            PID=150
+        if(PID < -150):
+            PID=-150
         print("PID values: ", PID)
         return PID
     
