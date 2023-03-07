@@ -5,6 +5,7 @@ from std_msgs.msg import Int64
 from calypso_msgs.msg import buoy
 from calypso_msgs.msg import gypseas
 from calypso_msgs.msg import dolphins
+from sensor_msgs.msg import Imu
 import pickle
 import math
 from scipy.integrate import trapezoid
@@ -31,18 +32,19 @@ class pid:
     
     self.throttle = 1540
     self.rate = rospy.Rate(10)
-    self.pwm_surge_speed = rospy.Publisher('/rosetta/dolphins', dolphins, queue_size = 1000)
-
-    self.x=0
-    self.y=0
-    self.yaw=0
+    self.dpublish= rospy.Publisher('/rosetta/dolphins', dolphins, queue_size = 1000)
 
     self.current_time=0
-    self.time=[0]
+    self.time=[0.1]
     self.acc_x=[]
     self.vel_x=[]
     self.acc_y=[]
     self.vel_y=[]
+    self.vel_gyro_z=[]
+    self.yaw=0
+    self.disp_x=0
+    self.disp_y=0
+
 
     self.cord=(1,1,15)
 
@@ -50,38 +52,59 @@ class pid:
   def integrate(self, y, x):
         return trapezoid(y, x)
 
+  def dynamic_clamp(self,pid_i,pid_p,pid_d):
+    
+    if pid_i>max(300-pid_p-pid_d, 0):
+        pid_i = max(300-pid_p-pid_d,0)
+    elif pid_i<min(-300-pid_i-pid_d, 0):
+        pid_i = min(-300-pid_p-pid_d,0)
+
+    return pid_i
+  
   def PID(self, kd, ki, kp, actual, desired, pid_i, previous_error, feedforward,clamp_min=None,clamp_max=None):
     
     self.imu_data=rospy.Subscriber("/rosetta/imu/data",buoy, self.talker)
 
     error = desired - actual
+    
     pid_p = kp*error
     pid_d = kd*(error - previous_error)
 
-    if(clamp_min or clamp_max):
-      if(clamp_min < error < clamp_max):
-        pid_i = pid_i + (ki*error)
+    if(clamp_max or clamp_min):
+
+      if(clamp_min<error<clamp_max):
+        pid_i = self.dynamic_clamp(pid_i + error,pid_p,pid_d)
+      else:
+        pid_i_final =0
     
-    val = pid_p + (pid_i + pid_d)/self.time_lapsed + feedforward
+    else:
+      pid_i = self.dynamic_clamp(pid_i + error,pid_p,pid_d)
+      pid_i_final = ki*pid_i
 
-    if(val > 300):
-        val=300
-    if(val < -300):
-        val=-300
+    offset = pid_p + (pid_i_final + pid_d)/self.time_lapsed + feedforward
 
+    if(offset > 300):
+        offset=300
+    if(offset < -300):
+        offset=-300
+    
     previous_error = error
-    return val
+    return offset
   
-  def get_pose(self,buoy):
+  def get_pose(self,data):
 
     self.w = buoy.w
-    self.acc_x.append(buoy.acc_x)
+    prev_gyro=0
+    self.acc_x.append(buoy.linear_acc_x)
     self.vel_x.append(self.integrate(self.acc_x, self.time))
-    self.acc_y.append(buoy.acc_y)
+    self.acc_y.append(buoy.linear_acc_y)
     self.vel_y.append(self.integrate(self.acc_y, self.time))
-    self.x = self.integrate(self.vel_x, self.time)
-    self.y = self.integrate(self.vel_y, self.time)
+    self.disp_x = self.integrate(self.vel_x, self.time)
+    self.disp_y = self.integrate(self.vel_y, self.time)
+    
     self.yaw=math.degrees(buoy.yaw)
+    self.acc
+    
     self.time.append(self.time[-1]+0.1)
   
   def publish(self,yaw,vertical,horizontal):
@@ -96,10 +119,13 @@ class pid:
     s.d2=self.thrust+yaw-vertical-horizontal
     s.d3=self.thrust-yaw+vertical-horizontal
     s.d4=self.thrust+yaw+vertical+horizontal
+    self.dpublish.publish(s)
 
   def start(self):
 
     while not rospy.is_shutdown():
+
+      self.pose=
       
       self.yaw = self.convert()
       self.surge = self.convert_linear()
