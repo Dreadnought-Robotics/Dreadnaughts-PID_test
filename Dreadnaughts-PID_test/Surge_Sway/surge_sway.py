@@ -98,9 +98,9 @@ class surge_sway:
 
             y_pwm = self.getPID_xy(self.y_disp, self.y_desired, self.pid_i_y)
             if y_pwm > 0:
-                self.x_pos_pwm = self.m(y_pwm) 
+                self.y_pos_pwm = self.m(y_pwm) 
             else: 
-                self.x_pos_pwm = self.m(-y_pwm)
+                self.y_pos_pwm = self.m(-y_pwm)
 
             self.g = dolphins()
 
@@ -108,6 +108,7 @@ class surge_sway:
             self.g.d2 = int(self.throttle + self.x_neg_pwm + self.y_pos_pwm + self.yaw_neg_pwm)
             self.g.d3 = int(self.throttle + self.x_pos_pwm + self.y_neg_pwm + self.yaw_pos_pwm)
             self.g.d4 = int(self.throttle + self.x_pos_pwm + self.y_pos_pwm + self.yaw_neg_pwm)
+            
             self.publisher.publish(self.g)
             self.rate.sleep()
 
