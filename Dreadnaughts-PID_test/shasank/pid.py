@@ -13,7 +13,7 @@ class pid:
     rospy.init_node('calypso_pid', anonymous=False)
 
     self.kp_pitch = 1
-    self.kd_pitch = 50
+    self.kd_pitch = 5
     self.ki_pitch = 0
     self.kp_roll = 1
     self.kd_roll = 50

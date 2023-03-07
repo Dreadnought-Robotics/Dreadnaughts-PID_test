@@ -41,36 +41,36 @@ class rosetta :
       y=0
     
     else:
-      y=2.84*(math.e**10) + -1.97*x*(math.e**8) + 613965*(x**2) + -1127*(x**3) + 1.35*(x**4) + -1.1*(math.e**-3)*(x**5) 
-      y=y+ 6.25*(math.e**-7)*(x**6) + -2.41*(math.e**-10)*(x**7) + 6.09*(math.e**-14)*(x**8) + -9.06*(math.e**-18)*(x**9) 
-      y=y+ 6.04*(math.e**-22)*(x**10)
+      y = 873445.5884049138 + -3060.828578480122*x + 4.270869048814241*x**2 + -0.002944908465733391*x**3 + 1.0007672335895403e-06*x**4 + -1.3418449357438108e-10*x**5
+    
+    if x==0:
+      y=0
 
     if x<1472:
-      y=-y
+       y=-y
 
-    return y*0.1047198
+    return y *0.1047198
 
-  def old_converter(self,x):
-    # X=pwm Y=rpm
-    coeffs = list()
-    coeffs.append(-1.6453836430727448e-05)
-    coeffs.append(0.07440821248059681)
-    coeffs.append(-100.45437634228745)
-    coeffs.append(38769.58439545923)
-    # [-1.6453836430727448e-05, 0.07440821248059681, -100.45437634228745, 38769.58439545923]
-    # print(coeffs)
-    if (x>1470 and x<1530):
-      y = 0
+  # def old_converter(self,x):
+  #   # X=pwm Y=rpm
+  #   coeffs = list()
+  #   coeffs.append(-1.6453836430727448e-05)
+  #   coeffs.append(0.07440821248059681)
+  #   coeffs.append(-100.45437634228745)
+  #   coeffs.append(38769.58439545923)
+  #   # [-1.6453836430727448e-05, 0.07440821248059681, -100.45437634228745, 38769.58439545923]
+  #   # print(coeffs)
+  #   if (x>1470 and x<1530):
+  #     y = 0
 
-    else:
-      y = x**3*coeffs[0] + x**2*coeffs[1] + x*coeffs[2] + coeffs[3] 
+  #   else:
+  #     y = x**3*coeffs[0] + x**2*coeffs[1] + x*coeffs[2] + coeffs[3] 
 
-    if (x<1000 or x>2000):
-      y = 0
-    # print(x,y)
-    velocity=(2*math.pi*0.0381*1.5*y)/60
+  #   if (x<1000 or x>2000):
+  #     y = 0
+  #   # print(x,y)
     
-    return y*0.1047198
+  #   return round(round(y, 4)*0.1047198,4)
   
 
   def talker1(self,msg_gypseas):
@@ -93,21 +93,21 @@ class rosetta :
       self.gypseas=rospy.Subscriber("/rosetta/gypseas", gypseas, self.talker1)
       self.dolphins=rospy.Subscriber("/rosetta/dolphins", dolphins, self.talker2)
       self.t=Float64()
-      self.t.data=self.old_converter(self.t1)
+      self.t.data=self.converter(self.t1)
       self.PBLDC_1.publish(self.t)
-      self.t.data=self.old_converter(self.t2)
+      self.t.data=self.converter(self.t2)
       self.PBLDC_2.publish(self.t)
-      self.t.data=self.old_converter(self.t3)
+      self.t.data=self.converter(self.t3)
       self.PBLDC_3.publish(self.t)
-      self.t.data=self.old_converter(self.t4)
+      self.t.data=self.converter(self.t4)
       self.PBLDC_4.publish(self.t)
-      self.t.data=self.old_converter(self.d1)
+      self.t.data=self.converter(self.d1)
       self.PBLDC_5.publish(self.t)
-      self.t.data=self.old_converter(self.d2)
+      self.t.data=self.converter(self.d2)
       self.PBLDC_6.publish(self.t)
-      self.t.data=self.old_converter(self.d3)
+      self.t.data=self.converter(self.d3)
       self.PBLDC_7.publish(self.t)
-      self.t.data=self.old_converter(self.d4)
+      self.t.data=self.converter(self.d4)
       self.PBLDC_8.publish(self.t)
       
       self.rate.sleep()

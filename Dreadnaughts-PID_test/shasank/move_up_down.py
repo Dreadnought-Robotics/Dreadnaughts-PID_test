@@ -36,7 +36,7 @@ class hover:
         self.y = 0
         self.z = 0
         self.w = 0
-        self.m = interp1d([0, 30],[1579,2000])
+        self.m = interp1d([0, 30],[1574,2000])
         self.n = interp1d([-30, 0], [1200,1468])
         self.start_time = time.time()
 
