@@ -2,8 +2,8 @@
 import rospy
 from std_msgs.msg import Float64
 from std_msgs.msg import Int64
-from calypso_msgs.msg import buoy
-from calypso_msgs.msg import dolphins
+from thruster.msg import buoy
+from thruster.msg import dolphins
 import pickle
 import math
 
