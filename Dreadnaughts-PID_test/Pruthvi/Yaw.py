@@ -11,15 +11,18 @@ class pid:
 	def __init__(self):
 		rospy.init_node('calypso_pid', anonymous=False)
 		
-		self.kp_yaw = 0.1
-		self.kd_yaw = 0.3
+		self.kp_yaw = 0
+		self.kd_yaw = 0
 		self.ki_yaw = 0
     	
 		self.pid_i_yaw = 0
 		self.previous_error_yaw = 0
 	
-		self.throttle = 1574
+		self.throttle1 = 1560
+		self.throttle2 = 1580
+		self.stable = 1570
 		self.rate = rospy.Rate(10)
+		
 		self.pwm_speed = rospy.Publisher('/rosetta/dolphins', dolphins, queue_size = 1000)		
 
 		self.x=0
@@ -29,21 +32,39 @@ class pid:
 		self.Z=0
     
 	def start(self):
+	
+		self.desired_yaw = int(input("Enter required Yaw: "))
+		
 		while not rospy.is_shutdown():
 		
-			self.dolphins = rospy.Subscriber("/rosetta/imu/data",buoy, self.talker)
+			self.dolphins = rospy.Subscriber("/rosetta/imu/data", buoy, self.talker)
 
 			self.yaw = self.convert()
-			self.PID_yaw = self.getPID(self.kd_yaw, self.ki_yaw, self.kp_yaw, self.yaw, 0, self.pid_i_yaw, self.previous_error_yaw)
+			self.PID_yaw = self.getPID(self.kd_yaw, self.ki_yaw, self.kp_yaw, self.yaw, self.desired_yaw, self.pid_i_yaw, self.previous_error_yaw)
 
 			self.s = dolphins()
-			self.s.d1 = round(self.throttle + self.PID_yaw)
-			self.s.d2 = round(self.throttle + self.PID_yaw)
-			self.s.d3 = round(self.throttle + self.PID_yaw)
-			self.s.d4 = round(self.throttle + self.PID_yaw)
 			
 			print("Yaw")
 			print(self.yaw)
+			
+			while(self.yaw>self.desired_yaw):
+				self.s.d1 = round(self.throttle2 + self.PID_yaw)
+				self.s.d2 = round(self.throttle1)
+				self.s.d3 = round(self.throttle2 + self.PID_yaw)
+				self.s.d4 = round(self.throttle1)
+			
+			while(self.yaw<self.desired_yaw):
+				self.s.d1 = round(self.throttle1)
+				self.s.d2 = round(self.throttle2 + self.PID_yaw)
+				self.s.d3 = round(self.throttle1)
+				self.s.d4 = round(self.throttle2 + self.PID_yaw)
+			
+			while(self.yaw == self.desired_yaw):
+				self.s.d1 = round(self.stable)
+				self.s.d2 = round(self.stable)
+				self.s.d3 = round(self.stable)
+				self.s.d4 = round(self.stable)
+			
 			self.pwm_speed.publish(self.s)
 			self.rate.sleep()
 			

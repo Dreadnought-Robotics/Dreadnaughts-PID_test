@@ -165,10 +165,10 @@ class surge_sway:
         pid_d = self.kd_x*(error - previous_error)
         pid_i = pid_i + error
 
-        # if pid_i>max(50-pid_p-pid_d, 0):
-        #     pid_i = max(50-pid_p-pid_d,0)
-        # elif pid_i<min(-50-pid_i-pid_d, 0):
-        #     pid_i = min(-50-pid_p-pid_d,0)
+        if pid_i>max(50-pid_p-pid_d, 0):
+            pid_i = max(50-pid_p-pid_d,0)
+        elif pid_i<min(-50-pid_i-pid_d, 0):
+            pid_i = min(-50-pid_p-pid_d,0)
 
         pid_i_final = self.ki_x*pid_i
         PID = pid_p + pid_i_final + pid_d
