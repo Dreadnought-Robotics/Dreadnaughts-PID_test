@@ -48,8 +48,8 @@ class surge_sway:
         self.ki_y = 0
         self.kd_y = 0
         
-        self.m = interp1d([0, 30],[1579,2000])
-        self.n = interp1d([-30, 0], [1200,1468])
+        self.m = interp1d([0, 30],[1600,2000])
+        self.n = interp1d([-30, 0], [1200,1500])
         self.start_time = time.time()
 
         self.time = []
@@ -88,6 +88,7 @@ class surge_sway:
             print("Displacement in X: ", self.x_disp)
             print("Displacement in Y: ", self.y_disp)
 
+            
             x_pwm = self.getPID_xy(self.x_disp, self.x_desired, self.i_throttle, self.prev_throttle_x)
             if x_pwm >1500:
                 self.x_pos_pwm = x_pwm
@@ -142,6 +143,12 @@ class surge_sway:
   
         #Pruthvi Ad your yaw PID Code here    
         return
+    
+    def set_1500(self):
+        self.x_pos_pwm = 1500
+        self.x_neg_pwm = 1500
+        self.y_pos_pwm = 1500
+        self.y_neg_pwm = 1500
 
 if __name__=='__main__':
     try:
