@@ -93,11 +93,11 @@ class surge_sway:
             print("Displacement in Y: ", self.y_disp)
 
             self.set_zero()
-            x_pwm = self.getPID_xy(self.x_disp, self.x_desired, self.pid_i_x)
-            if x_pwm >0:
-                self.x_pos_pwm = self.m(x_pwm)
-            else:
-                self.x_pos_pwm = self.m(-x_pwm)
+            # x_pwm = self.getPID_xy(self.x_disp, self.x_desired, self.pid_i_x)
+            # if x_pwm >0:
+            #     self.x_pos_pwm = self.m(x_pwm)
+            # else:
+            #     self.x_pos_pwm = self.m(-x_pwm)
 
             y_pwm = self.getPID_xy(self.y_disp, self.y_desired, self.pid_i_y)
             if y_pwm > 0:
@@ -110,8 +110,8 @@ class surge_sway:
 
             self.g = dolphins()
 
-            self.g.d1 = int(self.throttle + self.x_neg_pwm + self.y_neg_pwm + self.yaw_pos_pwm)
-            self.g.d2 = int(self.throttle + self.x_neg_pwm + self.y_pos_pwm + self.yaw_neg_pwm)
+            self.g.d1 = int(self.throttle + self.x_neg_pwm + self.y_pos_pwm + self.yaw_pos_pwm)
+            self.g.d2 = int(self.throttle + self.x_neg_pwm + self.y_neg_pwm + self.yaw_neg_pwm)
             self.g.d3 = int(self.throttle + self.x_pos_pwm + self.y_neg_pwm + self.yaw_pos_pwm)
             self.g.d4 = int(self.throttle + self.x_pos_pwm + self.y_pos_pwm + self.yaw_neg_pwm)
             
