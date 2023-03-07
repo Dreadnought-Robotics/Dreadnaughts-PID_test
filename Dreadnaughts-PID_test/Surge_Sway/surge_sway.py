@@ -16,6 +16,15 @@ class surge_sway:
         self.rate = rospy.Rate(10)
         self.publisher  = rospy.Publisher("/rosetta/dolphins", dolphins,queue_size=1000)
         self.accdata=rospy.Subscriber("/calypso_sim/imu/data",Imu, self.talker2)
+        
+        #Dolphin Variables
+        self.throttle = 0
+        self.x_pos_pwm = 0
+        self.x_neg_pwm = 0
+        self.y_pos_pwm = 0
+        self.y_neg_pwm = 0
+        self.yaw_pos_pwm = 0
+        self.yaw_neg_pwm = 0
 
         #Final Pts.
         self.x_desired = 0
@@ -25,7 +34,8 @@ class surge_sway:
         self.time_lapsed = 0
         self.x_disp = 0
         self.y_disp = 0
-        self.prev_throttle = 0
+        self.prev_throttle_x = 0
+        self.prev_throttle_y = 0
         self.i_throttle = 0
         self.prev_acc_x = 0
         self.prev_acc_y = 0
@@ -57,55 +67,46 @@ class surge_sway:
         while not rospy.is_shutdown():
 
             end_time = time.time()
+
+            #Appending Time
             self.time_lapsed = end_time - self.start_time
             self.time.append(self.time_lapsed)
+
+            #Appending Acceleration
             self.acc_x.append(self.acc_imu_x)
             self.acc_y.append(self.acc_imu_y)
+
+            #To get velocity
             temp_vel_x = self.integrate(self.acc_x, self.time)
             temp_vel_y = self.integrate(self.acc_y, self.time)
             self.vel_x.append(temp_vel_x)
             self.vel_y.append(temp_vel_y)
+
+            #To get displacement
             self.x_disp = self.integrate(self.vel_x, self.time)
             self.y_disp = self.integrate(self.vel_y, self.time)
             print("Displacement in X: ", self.x_disp)
             print("Displacement in Y: ", self.y_disp)
 
+            x_pwm = self.getPID_xy(self.x_disp, self.x_desired, self.i_throttle, self.prev_throttle_x)
+            if x_pwm >1500:
+                self.x_pos_pwm = x_pwm
+            else:
+                self.x_neg_pwm = x_pwm
+
+            y_pwm = self.getPID_xy(self.y_disp, self.y_desired, self.i_throttle, self.prev_throttle_y)
+            if y_pwm > 1500:
+                self.y_pos_pwm = y_pwm 
+            else: 
+                self.y_neg_pwm = y_pwm
+
             self.g = dolphins()
 
-            while self.x_disp > (self.x_desired - 5):
-                self.throttle_to_map = self.getPID(self.x_disp, self.x_desired, self.i_throttle, self.prev_throttle)
-                if self.throttle_to_map>=0:
-                    self.throttle = self.m(self.throttle_to_map)
-                    self.g.d3 = int(self.throttle)
-                    self.g.d4 = int(self.throttle)
-                    self.g.d2  = 0 
-                    self.g.d1 = 0
-                    
-                else:
-                    self.throttle = self.m(self.throttle_to_map)
-                    self.g.d1 = int(self.throttle)
-                    self.g.d2 = int(self.throttle)
-                    self.g.d3 = 0
-                    self.g.d4 = 0
-                self.publisher.publish(self.g)
-            
-            while self.y_disp > (self.y_desired - 5):
-                self.throttle_to_map = self.getPID(self.x_disp, self.x_desired, self.i_throttle, self.prev_throttle)
-                if self.throttle_to_map>=0:
-                    self.throttle = self.m(self.throttle_to_map)
-                    self.g.d2 = int(self.throttle)
-                    self.g.d3 = int(self.throttle)
-                    self.g.d4  = 0 
-                    self.g.d1 = 0
-                    
-                else:
-                    self.throttle = self.m(self.throttle_to_map)
-                    self.g.d1 = int(self.throttle)
-                    self.g.d4 = int(self.throttle)
-                    self.g.d2 = 0
-                    self.g.d3 = 0
-                self.publisher.publish(self.g)
-            
+            self.g.d1 = int(self.throttle + self.x_neg_pwm + self.y_neg_pwm + self.yaw_pos_pwm)
+            self.g.d2 = int(self.throttle + self.x_neg_pwm + self.y_pos_pwm + self.yaw_neg_pwm)
+            self.g.d3 = int(self.throttle + self.x_pos_pwm + self.y_neg_pwm + self.yaw_pos_pwm)
+            self.g.d4 = int(self.throttle + self.x_pos_pwm + self.y_pos_pwm + self.yaw_neg_pwm)
+
             self.rate.sleep()
 
     def talker2(self, Imu):
@@ -115,7 +116,7 @@ class surge_sway:
     def integrate(self, y, x):
         return scipy.integrate.trapz(y, x)
         
-    def getPID(self, actual, desired, pid_i, previous_error):
+    def getPID_xy(self, actual, desired, pid_i, previous_error):
   
         error = desired - actual
         pid_p = self.kp_x*error
@@ -136,6 +137,11 @@ class surge_sway:
         previous_error = error
         print("PID values: ", PID)
         return PID
+    
+    def getPID_yaw(self, actual, desired, pid_i, previous_error):
+  
+        #Pruthvi Ad your yaw PID Code here    
+        return
 
 if __name__=='__main__':
     try:
