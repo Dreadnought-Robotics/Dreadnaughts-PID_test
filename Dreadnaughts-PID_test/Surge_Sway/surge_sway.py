@@ -138,7 +138,7 @@ class surge_sway:
         self.yaw = buoy.yaw
 
     def talker2(self, Imu):
-        self.angvel_z = Imu.linear_velocity.z
+        self.angvel_z = Imu.angular_velocity.z
         self.acc_imu_x = Imu.linear_acceleration.x
         self.acc_imu_y = Imu.linear_acceleration.y
 
@@ -168,24 +168,28 @@ class surge_sway:
         print("PID values: ", PID)
         return PID
     
-    def getPID_yaw(self, kd, ki, kp, actual, desired, pid_i, feedforward):
+    def getPID_yaw(self, actual, desired, pid_i, feedforward):
 
         error = desired - actual
-        pid_p = kp*error
+        pid_p = self.kp_yaw*error
         pid_i = pid_i + error
-        pid_d = kd*(error - previous_error)
+        previous_error = error
+        pid_d = self.kd_yaw*(error - previous_error)
+
         if pid_i>max(34.5-pid_p-pid_d, 0):
             pid_i = max(34.5-pid_p-pid_d,0)
         elif pid_i<min(-34.5-pid_i-pid_d, 0):
             pid_i = min(-34.5-pid_p-pid_d,0)
-        pid_i_final = ki*pid_i
+
+        pid_i_final = self.ki_yaw*pid_i
+
         PID = pid_p + (pid_i_final + pid_d)/self.time_lapsed + feedforward
 
         if(PID > 30):
             PID=30
         if(PID < -30):
             PID=-30
-        previous_error = error
+
         return PID
     
     def set_zero(self):
