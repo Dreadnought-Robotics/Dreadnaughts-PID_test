@@ -19,7 +19,7 @@ class surge_sway:
         self.accdata=rospy.Subscriber("/calypso_sim/imu/data",Imu, self.talker2)
         
         #Dolphin Variables
-        self.throttle = 1500
+        self.throttle = 1550
         self.x_pos_pwm = 0
         self.x_neg_pwm = 0
 
@@ -34,8 +34,8 @@ class surge_sway:
         #PWM variables 
         self.y_pos_pwm = 0
         self.y_neg_pwm = 0
-        self.yaw_pos_pwm = 1580 #Test_Value
-        self.yaw_neg_pwm = 1510 #Test_Value
+        self.yaw_pos_pwm = 0 #Test_Value
+        self.yaw_neg_pwm = 0 #Test_Value
 
         #Final Pts.
         self.x_desired = 0
@@ -60,7 +60,7 @@ class surge_sway:
         self.pid_i_x = 0
         self.pid_i_y = 0 
         
-        self.m = interp1d([0, 50],[100,300])
+        self.m = interp1d([0, 50],[20,120])
         self.n = interp1d([-30, 30], [0,158])
         self.start_time = time.time()
 
@@ -109,22 +109,24 @@ class surge_sway:
             if x_pwm >0:
                 self.x_pos_pwm = self.m(x_pwm)
             else:
-                self.x_pos_pwm = self.m(-x_pwm)
+                self.x_neg_pwm = self.m(-x_pwm)
 
-            #Y-Displacement PID code
+            # Y-Displacement PID code
             y_pwm = self.getPID_xy(self.y_disp, self.y_desired, self.pid_i_y)
             if y_pwm > 0:
                 self.y_pos_pwm = self.m(y_pwm) 
             else: 
-                self.y_pos_pwm = self.m(-y_pwm)
-
-            #Yaw PID Code
-            yaw_temp = self.getPID_yaw(self.yaw, self.yaw_desired, self.pid_i_yaw, self.angvel_z)
+                self.y_neg_pwm = self.m(-y_pwm)
+              
+            # #Yaw PID Code
+            # yaw_temp = self.getPID_yaw(self.yaw, self.yaw_desired, self.pid_i_yaw, self.angvel_z)
         
-            if(yaw_temp > self.yaw):
-                self.yaw_pos_pwm = self.n(yaw_temp)
-            else:
-                self.yaw_neg_pwm = self.n(yaw_temp)
+            # if(yaw_temp > self.yaw):
+            #     self.yaw_pos_pwm = self.n(yaw_temp)
+            # else:
+            #     self.yaw_neg_pwm = self.n(yaw_temp)
+            
+            print(self.x_neg_pwm, self.x_pos_pwm, self.y_pos_pwm, self.y_neg_pwm)
 
             self.g.d1 = int(self.throttle + self.x_neg_pwm + self.y_pos_pwm + self.yaw_pos_pwm)
             self.g.d2 = int(self.throttle + self.x_neg_pwm + self.y_neg_pwm + self.yaw_neg_pwm)
@@ -165,7 +167,7 @@ class surge_sway:
             PID=50
         if(PID < -50):
             PID=-50
-        print("PID values: ", PID)
+        # print("PID values: ", PID)
         return PID
     
     def getPID_yaw(self, actual, desired, pid_i, feedforward):
@@ -188,7 +190,7 @@ class surge_sway:
         if(PID > 30):
             PID=30
         if(PID < -30):
-            PID=-30
+            PID=-30 
 
         return PID
     
@@ -197,6 +199,8 @@ class surge_sway:
         self.x_neg_pwm = 0
         self.y_pos_pwm = 0
         self.y_neg_pwm = 0
+        self.yaw_neg_pwm = 0
+        self.yaw_pos_pwm = 0 
 
 if __name__=='__main__':
     try:
