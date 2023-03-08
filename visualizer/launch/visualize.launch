@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<launch>
+  <node name="vis_roll_node" pkg="beta_pid" type="plot_roll.py" output="screen"/>a
+  <node name="vis_pitch_node" pkg="beta_pid" type="plot_pitch.py" output="screen"/>
+</launch>
+
