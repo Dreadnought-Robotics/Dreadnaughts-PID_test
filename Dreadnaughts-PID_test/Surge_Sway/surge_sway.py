@@ -28,6 +28,8 @@ class surge_sway:
         self.kp_yaw = 20
         self.kd_yaw = 40
         self.ki_yaw = 0
+        self.yaw_desired = 0
+        self.pid_i_yaw = 0
 
         #PWM variables 
         self.y_pos_pwm = 0
@@ -59,7 +61,7 @@ class surge_sway:
         self.pid_i_y = 0 
         
         self.m = interp1d([0, 50],[100,300])
-        # self.n = interp1d([-50, 0], [100,1500])
+        self.n = interp1d([-30, 30], [0,158])
         self.start_time = time.time()
 
         self.time = []
@@ -98,51 +100,36 @@ class surge_sway:
             print("Displacement in X: ", self.x_disp)
             print("Displacement in Y: ", self.y_disp)
 
+            self.g = dolphins()
+
             self.set_zero()
+
+            #X-Displacement PID code
             x_pwm = self.getPID_xy(self.x_disp, self.x_desired, self.pid_i_x)
             if x_pwm >0:
                 self.x_pos_pwm = self.m(x_pwm)
             else:
                 self.x_pos_pwm = self.m(-x_pwm)
 
+            #Y-Displacement PID code
             y_pwm = self.getPID_xy(self.y_disp, self.y_desired, self.pid_i_y)
             if y_pwm > 0:
                 self.y_pos_pwm = self.m(y_pwm) 
             else: 
                 self.y_pos_pwm = self.m(-y_pwm)
 
-            #Call your yaw function here to a temp variable. Then check the direction to yaw and set the pwm for that
-            self.yaw = self.convert()
-            self.PID_yaw = self.getPID(self.kd_yaw, self.ki_yaw, self.kp_yaw, self.yaw, self.desired_yaw, self.pid_i_yaw, self.previous_error_yaw)
-            #Yaw variables are self.yaw_pos_pwm and self.yaw_neg_pwm
+            #Yaw PID Code
+            yaw_temp = self.getPID_yaw(self.yaw, self.yaw_desired, self.pid_i_yaw, self.angvel_z)
+        
+            if(yaw_temp > self.yaw):
+                self.yaw_pos_pwm = self.n(yaw_temp)
+            else:
+                self.yaw_neg_pwm = self.n(yaw_temp)
 
-            self.g = dolphins()
-
-            #Integrate your variables into these while loops itself
-            #I don't know how else to work Yaw
-            
-            while(self.yaw>self.desired_yaw):
-                self.g.d1 = round(self.throttle2 + self.PID_yaw)
-                self.g.d2 = round(self.throttle1)
-                self.g.d3 = round(self.throttle2 + self.PID_yaw)
-                self.g.d4 = round(self.throttle1)
-            
-            while(self.yaw<self.desired_yaw):
-                self.g.d1 = round(self.throttle1)
-                self.g.d2 = round(self.throttle2 + self.PID_yaw)
-                self.g.d3 = round(self.throttle1)
-                self.g.d4 = round(self.throttle2 + self.PID_yaw)
-                
-            while(self.yaw == self.desired_yaw):
-                self.g.d1 = round(self.stable)
-                self.g.d2 = round(self.stable)
-                self.g.d3 = round(self.stable)
-                self.g.d4 = round(self.stable)
-
-            #self.g.d1 = int(self.throttle + self.x_neg_pwm + self.y_pos_pwm + self.yaw_pos_pwm)
-            #self.g.d2 = int(self.throttle + self.x_neg_pwm + self.y_neg_pwm + self.yaw_neg_pwm)
-            #self.g.d3 = int(self.throttle + self.x_pos_pwm + self.y_neg_pwm + self.yaw_pos_pwm)
-            #self.g.d4 = int(self.throttle + self.x_pos_pwm + self.y_pos_pwm + self.yaw_neg_pwm)
+            self.g.d1 = int(self.throttle + self.x_neg_pwm + self.y_pos_pwm + self.yaw_pos_pwm)
+            self.g.d2 = int(self.throttle + self.x_neg_pwm + self.y_neg_pwm + self.yaw_neg_pwm)
+            self.g.d3 = int(self.throttle + self.x_pos_pwm + self.y_neg_pwm + self.yaw_pos_pwm)
+            self.g.d4 = int(self.throttle + self.x_pos_pwm + self.y_pos_pwm + self.yaw_neg_pwm)
             
             self.publisher.publish(self.g)
             self.rate.sleep()
@@ -151,6 +138,7 @@ class surge_sway:
         self.yaw = buoy.yaw
 
     def talker2(self, Imu):
+        self.angvel_z = Imu.linear_velocity.z
         self.acc_imu_x = Imu.linear_acceleration.x
         self.acc_imu_y = Imu.linear_acceleration.y
 
@@ -180,27 +168,24 @@ class surge_sway:
         print("PID values: ", PID)
         return PID
     
-    def getPID(self, kd, ki, kp, actual, desired, pid_i, previous_error):
-        error = actual - desired
+    def getPID_yaw(self, kd, ki, kp, actual, desired, pid_i, feedforward):
+
+        error = desired - actual
         pid_p = kp*error
-        
-        if pid_i > 10:
-            pid_i = 10
-        elif pid_i < -10:
-            pid_i = -10
-        
-        pid_i = pid_i + (ki*error)
+        pid_i = pid_i + error
         pid_d = kd*(error - previous_error)
-        
-        PID = pid_p + pid_i + pid_d
-        
-        if(PID > 34.5):
-            PID = 34.5
-        if(PID < -34.5):
-            PID = -34.5
-            
+        if pid_i>max(34.5-pid_p-pid_d, 0):
+            pid_i = max(34.5-pid_p-pid_d,0)
+        elif pid_i<min(-34.5-pid_i-pid_d, 0):
+            pid_i = min(-34.5-pid_p-pid_d,0)
+        pid_i_final = ki*pid_i
+        PID = pid_p + (pid_i_final + pid_d)/self.time_lapsed + feedforward
+
+        if(PID > 30):
+            PID=30
+        if(PID < -30):
+            PID=-30
         previous_error = error
-        
         return PID
     
     def set_zero(self):
